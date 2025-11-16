@@ -398,7 +398,11 @@ class MultiverseAnalyzer:
         inferential_fragility = 1 - results['significant'].mean()
 
         # Descriptive fragility: coefficient of variation
-        descriptive_fragility = results['coefficient'].std() / abs(results['coefficient'].mean()) if results['coefficient'].mean() != 0 else np.inf
+        mean_coef = results['coefficient'].mean()
+        if abs(mean_coef) < 1e-10:
+            descriptive_fragility = np.inf
+        else:
+            descriptive_fragility = results['coefficient'].std() / abs(mean_coef)
 
         # Sign fragility: % of paths with different sign from median
         median_sign = np.sign(results['coefficient'].median())
@@ -406,17 +410,52 @@ class MultiverseAnalyzer:
         sign_fragility = 1 - sign_agreement
 
         # Vibration of Effects (VoE): ratio of 95th to 5th percentile
+        # Improved handling of edge cases
         p95 = results['coefficient'].quantile(0.95)
         p5 = results['coefficient'].quantile(0.05)
-        voe = abs(p95 / p5) if p5 != 0 else np.inf
+
+        # Handle edge cases for VoE calculation
+        if abs(p5) < 1e-10:
+            # If p5 is near zero, use alternative metric
+            if abs(p95) < 1e-10:
+                # Both near zero - very tight distribution
+                voe = 1.0
+                voe_note = "Both percentiles near zero - using value of 1.0"
+            else:
+                # p5 near zero but p95 not - use ratio of range to median
+                median_abs = abs(results['coefficient'].median())
+                if median_abs < 1e-10:
+                    voe = np.inf
+                    voe_note = "p5 ≈ 0, median ≈ 0 - undefined VoE"
+                else:
+                    voe = abs(p95 - p5) / median_abs
+                    voe_note = "p5 ≈ 0 - using range/median ratio"
+        elif np.sign(p5) != np.sign(p95):
+            # Effects cross zero - use alternative metric
+            # VoE not meaningful when effects have opposite signs
+            voe = abs(p95 - p5) / abs(results['coefficient'].median())
+            voe_note = "Effects cross zero - using range/median ratio"
+        else:
+            # Standard VoE calculation
+            voe = abs(p95 / p5)
+            voe_note = "Standard VoE (p95/p5)"
+
+        # Cap VoE at reasonable maximum for interpretability
+        if voe > 1000:
+            voe = 1000.0
+            voe_note = voe_note + " (capped at 1000)"
 
         return {
             'inferential_fragility': inferential_fragility,
             'descriptive_fragility': descriptive_fragility,
             'sign_fragility': sign_fragility,
             'vibration_of_effects': voe,
+            'voe_interpretation': voe_note,
             'coefficient_range': results['coefficient'].max() - results['coefficient'].min(),
             'iqr_coefficient': results['coefficient'].quantile(0.75) - results['coefficient'].quantile(0.25),
+            'effects_cross_zero': np.sign(p5) != np.sign(p95),
+            'p5': p5,
+            'p95': p95,
         }
 
     def visualize_multiverse(self, figsize: Tuple[int, int] = (16, 10), show: bool = True):
