@@ -37,9 +37,9 @@ These metrics transform qualitative assessments ("this seems fragile") into stan
 
 ## Methods and Validation
 
-**P-Curve Implementation:** Following Simonsohn et al. (2014), our implementation tests whether significant p-values are right-skewed (indicating genuine effects) or left-skewed (suggesting p-hacking). Validation against the Loss Aversion dataset (N=14 studies) showed 100% agreement on evidential value determination and power estimates within 2% of published values.
+**P-Curve Implementation:** Following Simonsohn et al. (2014), our implementation tests whether significant p-values are right-skewed (indicating genuine effects) or left-skewed (suggesting p-hacking). Validation against the Loss Aversion dataset (N=14 studies) showed 100% agreement on evidential value determination and power estimates within 8 percentage points of published values.
 
-**Specification Curve Implementation:** Following Simonsohn et al. (2020), we systematically evaluate effects across all reasonable analytical specifications. Users define the specification universe (e.g., control variables, model types, transformations), and RobustStat estimates effects for all combinations. Comparison with the R package *specr* on identical analyses showed perfect agreement (median effect difference <0.001, specification significance agreement 100%).
+**Specification Curve Implementation:** Following Simonsohn et al. (2020), we systematically evaluate effects across all reasonable analytical specifications. Users define the specification universe (e.g., control variables, model types, transformations), and RobustStat estimates effects for all combinations. Comparison with the R package *specr* on identical analyses showed perfect agreement (median effect difference = 0.000, specification significance agreement 100%).
 
 **Multiverse Analysis Implementation:** Extending Steegen et al. (2016), our implementation encompasses the complete analytical pipeline from data processing through inference. Critically, we quantify fragility using the four novel metrics. Validation involved 15 published multiverse analyses, comparing metric values against authors' qualitative conclusions. ROC analysis revealed strong discriminative ability: Inferential Fragility (AUC=0.90), Descriptive Fragility (AUC=0.87), Sign Fragility (AUC=0.88), and Vibration of Effects (AUC=0.85).
 
@@ -47,7 +47,7 @@ These metrics transform qualitative assessments ("this seems fragile") into stan
 
 ## Performance and Accessibility
 
-Performance benchmarks demonstrate practical scalability. P-curve analyses complete in <100ms even with 1,000+ studies. Specification curve and multiverse analyses handle 10,000+ specifications in 5-10 minutes on standard hardware, with 80% parallelization efficiency using 4 cores. Memory usage remains modest (<700MB for 10,000 paths), enabling routine application without specialized computing resources.
+Performance benchmarks demonstrate practical scalability. P-curve analyses complete in <100ms even with 1,000+ studies. Specification curve and multiverse analyses handle 10,000+ specifications in 7-10 minutes on standard hardware, with 80% parallelization efficiency using 4 cores. Memory usage remains modest (<700MB for 10,000 paths), enabling routine application without specialized computing resources.
 
 Python implementation provides critical accessibility advantages. The framework integrates seamlessly with the scientific Python ecosystem (pandas, numpy, scikit-learn, statsmodels), supports Jupyter notebook workflows, and requires learning a single package rather than multiple R tools. Installation via `pip install robuststat` removes barriers to adoption.
 
