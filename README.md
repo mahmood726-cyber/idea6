@@ -27,6 +27,12 @@ Advanced multiverse analysis framework for:
 
 ## Installation
 
+Data-cleaning utilities preserve the input DataFrame and support pandas
+copy-on-write when imputing missing values. Outlier masks retain the original
+row positions; non-finite observations are excluded, and constant finite samples
+are retained by the z-score method for positive thresholds. Invalid thresholds
+raise `ValueError`.
+
 ```bash
 pip install -r requirements.txt
 pip install -e .

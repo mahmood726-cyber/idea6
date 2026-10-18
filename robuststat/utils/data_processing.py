@@ -4,6 +4,7 @@ import numpy as np
 import pandas as pd
 from scipy import stats
 from typing import Union, Optional
+from numbers import Real
 
 
 def remove_outliers(
@@ -28,8 +29,20 @@ def remove_outliers(
     np.ndarray
         Boolean mask where True indicates non-outliers
     """
-    data = np.asarray(data)
-    data_clean = data[~np.isnan(data)]
+    if method not in ('iqr', 'z_score', 'percentile'):
+        raise ValueError(f"Unknown method: {method}")
+    if (isinstance(threshold, (bool, np.bool_)) or not isinstance(threshold, Real)
+            or not np.isfinite(threshold)
+            or threshold < 0 or (method == 'percentile' and threshold > 50)):
+        raise ValueError("threshold must be finite and non-negative (at most 50 for percentile)")
+    data = np.asarray(data, dtype=float)
+    if data.ndim != 1:
+        raise ValueError("data must be one-dimensional")
+    finite = np.isfinite(data)
+    data_clean = data[finite]
+    mask = np.zeros(data.shape, dtype=bool)
+    if not data_clean.size:
+        return mask
 
     if method == 'iqr':
         Q1 = np.percentile(data_clean, 25)
@@ -40,18 +53,20 @@ def remove_outliers(
         mask = (data >= lower) & (data <= upper)
 
     elif method == 'z_score':
-        z_scores = np.abs(stats.zscore(data_clean, nan_policy='omit'))
-        mask = z_scores < threshold
+        # A constant finite sample has no outliers. Keep original row positions
+        # when placing scores computed only on the finite observations.
+        if np.all(data_clean == data_clean[0]):
+            mask[finite] = threshold > 0
+        else:
+            z_scores = np.abs(stats.zscore(data_clean))
+            mask[finite] = z_scores < threshold
 
     elif method == 'percentile':
         lower = np.percentile(data_clean, threshold)
         upper = np.percentile(data_clean, 100 - threshold)
         mask = (data >= lower) & (data <= upper)
 
-    else:
-        raise ValueError(f"Unknown method: {method}")
-
-    return mask
+    return mask & finite
 
 
 def handle_missing_data(
@@ -87,18 +102,18 @@ def handle_missing_data(
     elif method == 'mean_impute':
         for col in columns:
             if data[col].dtype in [np.float64, np.int64]:
-                data[col].fillna(data[col].mean(), inplace=True)
+                data[col] = data[col].fillna(data[col].mean())
 
     elif method == 'median_impute':
         for col in columns:
             if data[col].dtype in [np.float64, np.int64]:
-                data[col].fillna(data[col].median(), inplace=True)
+                data[col] = data[col].fillna(data[col].median())
 
     elif method == 'mode_impute':
         for col in columns:
             mode_val = data[col].mode()
             if len(mode_val) > 0:
-                data[col].fillna(mode_val[0], inplace=True)
+                data[col] = data[col].fillna(mode_val.iloc[0])
 
     else:
         raise ValueError(f"Unknown method: {method}")
